@@ -1,17 +1,18 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE_NAME = "rahul4884/train-schedule"
+        DOCKER_IMAGE_NAME = "apamplin/train-schedule"
     }
     stages {
         stage("Checkout from github repo"){
             steps{
-            git url: 'https://github.com/Patelrahul4884/cicd-pipeline-train-schedule-autodeploy.git'
+            git url: 'https://github.com/apamplin/cicd-pipeline-train-schedule-autodeploy.git'
             }
         }
         stage('Build') {
             steps {
                 echo 'Running build automation'
+                sh './gradlew wrapper --gradle-version=8.5'
                 sh './gradlew build --no-daemon'
                 archiveArtifacts artifacts: 'dist/trainSchedule.zip'
             }
@@ -26,7 +27,7 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_login') {
+                    docker.withRegistry('https://registry.hub.docker.com', 'dockerhub-credentials') {
                         app.push("${env.BUILD_NUMBER}")
                         app.push("latest")
                     }
@@ -35,7 +36,7 @@ pipeline {
         }
         stage('DeployToProduction') {
             steps {
-                kubeconfig(caCertificate: 'LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMvakNDQWVhZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJeU1USXdOREUwTXpZME5sb1hEVE15TVRJd01URTBNelkwTmxvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTVV4CnR2eFdmcmNGV2crVFpxSi92U3pWRFlPSVVMWE0zMlRxOW9TL1g5UzZVVjNkZ0xUTDI4V0IvblF0K0xGbjNwWEQKOE9RNTZVN25sZlhiSWI0Q1ZUdVVkVDg0c2xGcVdWN2lkUVlGNXVNaERDamF2MW16OG9IbVJQVXlBVW9HQWY5VApWWUFxY3h2VnVvbDVKa1EydXpyTHJrZ1VJU2k3dVdYdlVxRnl4bW8rUWt2cWRiUm5ldDBpbHNTbU5FdDlObTNTClVJSStrbTRZU3lod2xtTHlOYXJPc0lsNVU3ZXpuUG1Ua0E0MXN1ZG4wSjNRMXBYQUdSY2NqVXVzWjBIK3FyZm4KOGJWdFpuMmhsbms0VHRMSGhEUS81MFNXOCt1MEVLOHo2Sms5bHVET1BiSjdxam11U0Y1c3RJUDg1VWo2SndhMgpoUm1sclU1UUlzSTd5ZWlFMzZFQ0F3RUFBYU5aTUZjd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZQcFhkVmc3LzJiUGhBZytZdys4WFIzWk90OUJNQlVHQTFVZEVRUU8KTUF5Q0NtdDFZbVZ5Ym1WMFpYTXdEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBR2IwcEEwQythVFVDdytOY1FyZgp3NHNhQStUMnNMU0xTM3NGOWh1NEdKU0lHaXdPTDRja2pscE1sUTE5aDltWnVpdVBkOEhNa0RrWTBTRHQvRXdyCm94MVdrYTlxMkFEZ0hyVCtDUzBOWHVJMDBLQ0QzdDd5czBhdGl6b21lWnppcE9aYkZRdnI2eEU0bUhQY0hNQUEKQ1dMR2RvRjNhVEZFODJIUWxLWkM4anFHUklqeE5SWlFpZ1IvVXlxSktYZWs1Z1BQZGVzckJRY2NuQzVtVWxoOQo0cktwT1p0UTBjajFMakx2dkQxNWdCMkVSVzBtK2lDTUhCM1g1SGJXdkZWOEgzOEFzcjc5amwrMHFoU1lRTTVoCmsweVNxd3gvY2hFd0hWc0NURjNKSUZUejAwZVhFa0VPdE1yVitYWEhKNk9jdzFINXFvNFhHY0NoUDN2c3NZbFMKUWw0PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==', credentialsId: 'kubernetes', serverUrl: 'https://192.168.59.104:8443') {
+                kubeconfig(caCertificate: 'MIIDDzCCAfegAwIBAgIUcqMRLNCJtnpY2C3moIORgjgrBvgwDQYJKoZIhvcNAQELBQAwFzEVMBMGA1UEAwwMMTAuMTUyLjE4My4xMB4XDTIzMTEwODE2NTMxMVoXDTMzMTEwNTE2NTMxMVowFzEVMBMGA1UEAwwMMTAuMTUyLjE4My4xMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqeURtgTbnDapLc7vO1XxvBbRzdklWwTkxiwDOYN3MK2YYsvIGaGbBJaGbPYFzmOvWlNHiMeGLieUTytbFOdZYaqmcdIJQySK/lM2o5EjC93MNESOifhcylFSB7YSbt3Dz54DUVI/RYaJniiYGIpezvG3xPMQN+Npol3rfp73uztD7IiM4lSPb7Ji8jXZTjR5Kwg6mZaph5EDuhLFrDDzRKveQHxhHIGyHjP8YxHhe5+Y1fpq1cGEdGNsslLBKv6kzZytgP7acOlK2kXzBtUVPHYwzkAlBMQ1SDHimy1jKFbpr/2r0x5PzTi0gFkzh7Dd2TFaLmisU7WOBBAD5lHhNwIDAQABo1MwUTAdBgNVHQ4EFgQUrlF10gaVsaIAcvwyyCK6u5Pe0jkwHwYDVR0jBBgwFoAUrlF10gaVsaIAcvwyyCK6u5Pe0jkwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAPcxiUlQy/ZjKyqq1DtgLBrklLY3TwwKlCX9pfQtVjIC/Xw1K8rXqpHa/QQySfO657ES0Q85/El7di/2lyYyCh5TDo+k2xSzFXxwov/FBh7Tr+XWNtzjAFOgzcknMTy0zQPmHnM0pu9dZkPet5UiX6A/tIaiWQ7HvpnRj0avGmyPuOt7P3SpEf2DMDtAfReoLiao8EYmX65HhCQ//qAbJp5jAVPZyUfa5Lx5cneUlQvLD8MdB61s1bFiZrluQOF5SUEc73ikFmgN+rVGE9La4E6Q3ScZV8VoEwcqiKlJhijtULSI1VxkYJbleMgM+fp3pKbuBvlobTCVX9kDEftitqg==', credentialsId: '2ae22ff8-baf1-4ec5-96d1-4e436a88ff0a', serverUrl: 'https://10.4.8.52:16443') {
     // some block
                  sh 'kubectl apply -f deployment.yaml'
                  sh 'kubectl apply -f app-service.yaml'
